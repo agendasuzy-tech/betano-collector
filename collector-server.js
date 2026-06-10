@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 // CONFIGURAÇÃO DO PROXY (Cloudflare Worker)
 // Troque pela URL do seu Worker após o deploy!
 // ============================================================
-const PROXY_URL = process.env.PROXY_URL || 'https://betano-proxy.SEU-USUARIO.workers.dev';
+const PROXY_URL = process.env.PROXY_URL || 'https://betano-proxy.agendasuzy.workers.dev';
 
 // Configuração Supabase
 const SUPABASE_URL = 'https://wwicknifzoeusrmganye.supabase.co';
