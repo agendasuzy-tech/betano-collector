@@ -1,0 +1,345 @@
+<!-- ============================================================
+     ADICIONE ISSO NO SEUS NAVEGAÇÃO (SIDEBAR) DO INDEX.HTML
+     Procure a seção .sidebar-nav e adicione:
+     ============================================================ -->
+
+<button class="nav-item" data-tab="collector" onclick="switchTab('collector')">
+    <i class="fas fa-robot"></i>
+    <span>Coletor Automático</span>
+</button>
+
+<!-- ============================================================
+     ADICIONE ISSO COMO UMA NOVA SEÇÃO NO MAIN-CONTENT
+     (Depois das outras seções)
+     ============================================================ -->
+
+<div id="collector-content" class="tab-content" style="display:none;">
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <h1><i class="fas fa-robot" style="color: var(--color-success);"></i> Coletor Automático</h1>
+            <p>Dados coletados automaticamente 24/7 do Betano</p>
+        </div>
+        <div class="header-right">
+            <div class="sync-status">
+                <i class="fas fa-server spinning" id="collector-status-icon"></i>
+                <span id="collector-status-text">Conectado</span>
+            </div>
+            <button class="btn-refresh" onclick="loadCollectorStatus()">
+                <i class="fas fa-sync"></i> Atualizar Status
+            </button>
+        </div>
+    </div>
+
+    <!-- CARDS DE ESTATÍSTICAS -->
+    <div class="stats-section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div class="stat-card">
+            <div class="stat-label">
+                <i class="fas fa-database" style="color: var(--color-primary);"></i>
+                Total de Partidas Coletadas
+            </div>
+            <div class="stat-value" id="total-matches">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">
+                <i class="fas fa-plus-circle" style="color: var(--color-success);"></i>
+                Novas Partidas (Última Coleta)
+            </div>
+            <div class="stat-value" id="new-matches">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">
+                <i class="fas fa-clock" style="color: var(--color-warning);"></i>
+                Última Coleta
+            </div>
+            <div class="stat-value" id="last-run" style="font-size: 14px;">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">
+                <i class="fas fa-hourglass-end" style="color: var(--color-secondary);"></i>
+                Próxima Coleta
+            </div>
+            <div class="stat-value" id="next-run" style="font-size: 14px;">-</div>
+        </div>
+    </div>
+
+    <!-- INFO CARD -->
+    <div class="info-section">
+        <div class="info-card">
+            <div class="info-header">
+                <i class="fas fa-info-circle"></i>
+                Sobre o Coletor Automático
+            </div>
+            <p>
+                O coletor roda <strong>24/7 em um servidor na nuvem</strong> (Render.com). 
+                A cada <strong>1 MINUTO</strong>, ele coleta dados de <strong>12 ligas</strong> diferentes do Betano Virtual 
+                e salva <strong>TODAS as odds</strong> (resultado final, placar correto, viradinha, etc).
+            </p>
+            <p>
+                Você pode desligar seu PC que os dados continuam sendo coletados e salvos automaticamente no Supabase.
+            </p>
+            <div class="info-details">
+                <div class="detail-item">
+                    <i class="fas fa-check"></i>
+                    <span><strong>12 Ligas</strong> sendo monitoradas</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-check"></i>
+                    <span>Coleta a cada <strong>1 MINUTO</strong></span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-check"></i>
+                    <span><strong>Todas as odds</strong> são capturadas</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-check"></i>
+                    <span>Dados persistem no <strong>Supabase</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABELA DE ÚLTIMAS PARTIDAS COLETADAS -->
+    <div class="filters-section">
+        <div class="filters-header">
+            <h2>
+                <i class="fas fa-list"></i>
+                Últimas Partidas Coletadas
+            </h2>
+        </div>
+        <div class="matches-table-wrapper">
+            <table class="matches-table">
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Liga</th>
+                        <th>Time Casa</th>
+                        <th>Placar</th>
+                        <th>Time Fora</th>
+                        <th>Resultado</th>
+                        <th>1T</th>
+                    </tr>
+                </thead>
+                <tbody id="latest-matches-tbody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
+                            <i class="fas fa-spinner spinning"></i> Carregando partidas...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- LIGAS MONITORADAS -->
+    <div class="filters-section">
+        <div class="filters-header">
+            <h2>
+                <i class="fas fa-globe"></i>
+                12 Ligas Sendo Coletadas
+            </h2>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">World</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">Brasileirão Betano</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">Copa América</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">Euro</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">Ligas América</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">Clássicos da América</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">British Derbies</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">Liga Espanhola</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">Scudetto Italiano</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">Campeonato Italiano</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">Copa das Estrelas</strong>
+            </div>
+            <div style="background: var(--color-dark); padding: 15px; border-radius: 8px; border-left: 3px solid var(--color-primary); text-align: center;">
+                <strong style="color: var(--color-primary);">Campeões</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     ADICIONE ESTE SCRIPT NO SEU index.html (no final antes de </body>)
+     ============================================================ -->
+
+<script>
+// Configuração Supabase (use suas credenciais)
+const SUPABASE_URL = 'https://wwicknifzoeusrmganye.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3aWNrbmlmem9ldXNybWdhbnllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDc0NDQsImV4cCI6MjA5NjQyMzQ0NH0.fq8QCF32YyJ2yonDfHVXTK5hP_c8gSKTk2bg4jlal3U';
+
+// Inicializar Supabase (já deve estar no seu HTML)
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function loadCollectorStatus() {
+    try {
+        // Buscar estatísticas dos logs
+        const { data: logs, error: logsError } = await supabaseClient
+            .from('collection_logs')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (logsError) throw logsError;
+
+        // Buscar total de partidas
+        const { count: totalCount, error: countError } = await supabaseClient
+            .from('matches')
+            .select('*', { count: 'exact', head: true });
+
+        // Atualizar cards
+        document.getElementById('total-matches').textContent = totalCount || '0';
+        document.getElementById('new-matches').textContent = logs?.new_matches || '0';
+        document.getElementById('last-run').textContent = logs?.created_at 
+            ? new Date(logs.created_at).toLocaleString('pt-BR') 
+            : '-';
+        
+        // Próxima coleta em 30 minutos
+        const nextRun = new Date(new Date(logs?.created_at).getTime() + 30 * 60 * 1000);
+        document.getElementById('next-run').textContent = nextRun.toLocaleString('pt-BR');
+
+    } catch (error) {
+        console.error('Erro ao carregar status:', error);
+        document.getElementById('collector-status-text').textContent = 'Erro na conexão';
+    }
+}
+
+async function loadLatestMatches() {
+    try {
+        const { data: matches, error } = await supabaseClient
+            .from('matches')
+            .select('*, ligas(name)')
+            .order('match_time', { ascending: false })
+            .limit(20);
+
+        if (error) throw error;
+
+        const tbody = document.getElementById('latest-matches-tbody');
+        
+        if (!matches || matches.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
+                        Nenhuma partida coletada ainda
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = matches.map(match => `
+            <tr>
+                <td>${new Date(match.match_time).toLocaleString('pt-BR')}</td>
+                <td><span style="color: var(--color-primary); font-weight: 600;">${match.ligas?.name || 'N/A'}</span></td>
+                <td>${match.home_team}</td>
+                <td style="font-weight: 700; color: var(--color-warning);">${match.full_time_home} - ${match.full_time_away}</td>
+                <td>${match.away_team}</td>
+                <td>
+                    <span class="result-badge ${match.result === 'Casa' ? 'win' : match.result === 'Fora' ? 'loss' : 'draw'}">
+                        ${match.result}
+                    </span>
+                </td>
+                <td>${match.half_time_home} - ${match.half_time_away}</td>
+            </tr>
+        `).join('');
+
+    } catch (error) {
+        console.error('Erro ao carregar partidas:', error);
+    }
+}
+
+// Função para trocar de aba (certifique-se que existe no seu código)
+function switchTab(tabName) {
+    // Esconder todos os tabs
+    const allContents = document.querySelectorAll('.tab-content');
+    allContents.forEach(content => content.style.display = 'none');
+
+    // Mostrar o selecionado
+    const selectedContent = document.getElementById(tabName + '-content');
+    if (selectedContent) {
+        selectedContent.style.display = 'block';
+        
+        // Se for collector, carregar dados
+        if (tabName === 'collector') {
+            loadCollectorStatus();
+            loadLatestMatches();
+        }
+    }
+
+    // Atualizar nav items ativos
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.target.closest('.nav-item')?.classList.add('active');
+}
+
+// Atualizar a cada 30 segundos para refletir coletas em tempo real
+setInterval(() => {
+    if (document.getElementById('collector-content').style.display !== 'none') {
+        loadCollectorStatus();
+        loadLatestMatches();
+    }
+}, 30 * 1000);
+</script>
+
+<!-- ============================================================
+     ADICIONE ESTE CSS NO SEU style EXISTENTE
+     ============================================================ -->
+
+<style>
+.stat-card {
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    text-align: center;
+    transition: var(--transition);
+}
+.stat-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+.stat-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-lg);
+}
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+.tab-content {
+    animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
