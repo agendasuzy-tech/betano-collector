@@ -243,17 +243,17 @@
         <div class="leagues-section">
             <div class="leagues-tabs">
                 <button class="league-tab active" data-league="World" onclick="changeLeague('World')">🌐 World</button>
-                <button class="league-tab" data-league="Brasileirao Betano" onclick="changeLeague('Brasileirao Betano')">🇧🇷 Brasileirão Betano</button>
-                <button class="league-tab" data-league="Classicos da America" onclick="changeLeague('Classicos da America')">🌎 Clássicos da América</button>
-                <button class="league-tab" data-league="Copa America" onclick="changeLeague('Copa America')">🏆 Copa America</button>
+                <button class="league-tab" data-league="Brasileirão Betano" onclick="changeLeague('Brasileirão Betano')">🇧🇷 Brasileirão Betano</button>
+                <button class="league-tab" data-league="Clássicos da América" onclick="changeLeague('Clássicos da América')">🌎 Clássicos da América</button>
+                <button class="league-tab" data-league="Copa América" onclick="changeLeague('Copa América')">🏆 Copa América</button>
                 <button class="league-tab" data-league="Euro" onclick="changeLeague('Euro')">🌍 Euro</button>
-                <button class="league-tab" data-league="Ligas America" onclick="changeLeague('Ligas America')">🗺️ Ligas America</button>
+                <button class="league-tab" data-league="Ligas América" onclick="changeLeague('Ligas América')">🗺️ Ligas América</button>
                 <button class="league-tab" data-league="British Derbies" onclick="changeLeague('British Derbies')">🏴󠁧󠁢󠁥󠁮󠁧󠁿 British Derbies</button>
                 <button class="league-tab" data-league="Liga Espanhola" onclick="changeLeague('Liga Espanhola')">🇪🇸 Liga Espanhola</button>
                 <button class="league-tab" data-league="Scudetto Italiano" onclick="changeLeague('Scudetto Italiano')">🇮🇹 Scudetto Italiano</button>
                 <button class="league-tab" data-league="Campeonato Italiano" onclick="changeLeague('Campeonato Italiano')">⚽ Campeonato Italiano</button>
                 <button class="league-tab" data-league="Copa das Estrelas" onclick="changeLeague('Copa das Estrelas')">⭐ Copa das Estrelas</button>
-                <button class="league-tab" data-league="Campeoes" onclick="changeLeague('Campeoes')">👑 Campeões</button>
+                <button class="league-tab" data-league="Campeões" onclick="changeLeague('Campeões')">👑 Campeões</button>
             </div>
         </div>
 
@@ -406,20 +406,20 @@
 // DADOS DE FUTEBOL VIRTUAL BET365
 // ============================================
 
-// Times por liga (ligas reais do futebol virtual Betano)
+// Times por liga — nomes exatos conforme salvos pelo coletor no Supabase
 const LEAGUE_TEAMS = {
-    'World':                ['Team A','Team B','Team C','Team D','Team E','Team F','Team G','Team H','Team I','Team J'],
-    'Brasileirao Betano':   ['Flamengo VR','Palmeiras VR','Corinthians VR','São Paulo VR','Grêmio VR','Internacional VR','Santos VR','Athletico VR','Fluminense VR','Vasco VR'],
-    'Classicos da America': ['Brasil VR','Argentina VR','Uruguai VR','Colômbia VR','Chile VR','Peru VR','Equador VR','Venezuela VR','Paraguai VR','Bolívia VR'],
-    'Copa America':         ['Brasil VR','Argentina VR','Uruguai VR','Colômbia VR','Chile VR','Peru VR','Equador VR','Venezuela VR','Paraguai VR','Bolívia VR'],
-    'Euro':                 ['England VR','Spain VR','Germany VR','France VR','Italy VR','Portugal VR','Netherlands VR','Belgium VR','Croatia VR','Poland VR'],
-    'Ligas America':        ['MLS VR','Liga MX VR','Argentina VR','Brasil VR','Colombia VR','Chile VR','Peru VR','Equador VR','Uruguai VR','Paraguai VR'],
-    'British Derbies':      ['Man United VR','Man City VR','Liverpool VR','Arsenal VR','Chelsea VR','Tottenham VR','Newcastle VR','Aston Villa VR','Leeds VR','Everton VR'],
-    'Liga Espanhola':       ['Real Madrid VR','Barcelona VR','Atletico VR','Sevilla VR','Valencia VR','Villarreal VR','Betis VR','Sociedad VR','Athletic VR','Osasuna VR'],
-    'Scudetto Italiano':    ['Juventus VR','Milan VR','Inter VR','Roma VR','Napoli VR','Lazio VR','Fiorentina VR','Atalanta VR','Bologna VR','Torino VR'],
-    'Campeonato Italiano':  ['Juventus VR','Milan VR','Inter VR','Roma VR','Napoli VR','Lazio VR','Fiorentina VR','Atalanta VR','Bologna VR','Torino VR'],
-    'Copa das Estrelas':    ['Estrela A','Estrela B','Estrela C','Estrela D','Estrela E','Estrela F','Estrela G','Estrela H','Estrela I','Estrela J'],
-    'Campeoes':             ['Campeão A','Campeão B','Campeão C','Campeão D','Campeão E','Campeão F','Campeão G','Campeão H','Campeão I','Campeão J']
+    'World':                [],
+    'Brasileirão Betano':   [],
+    'Clássicos da América': [],
+    'Copa América':         [],
+    'Euro':                 [],
+    'Ligas América':        [],
+    'British Derbies':      [],
+    'Liga Espanhola':       [],
+    'Scudetto Italiano':    [],
+    'Campeonato Italiano':  [],
+    'Copa das Estrelas':    [],
+    'Campeões':             []
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -509,10 +509,30 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function loadMatchesData() {
+    // Buscar id da liga pelo nome na tabela ligas
+    const { data: ligaData, error: ligaError } = await supabaseClient
+        .from('ligas')
+        .select('id')
+        .eq('name', currentLeague)
+        .single();
+
+    if (ligaError || !ligaData) {
+        console.error('Liga nao encontrada no banco:', currentLeague, ligaError);
+        allMatches = [];
+        filteredMatches = [];
+        renderMatches();
+        updateStats();
+        updateMatchCount();
+        updateLeagueName();
+        return;
+    }
+
     const { data, error } = await supabaseClient
-        .from('resultados_virtual')
-        .select('*')
-        .order('id', { ascending: false });
+        .from('matches')
+        .select('*, ligas(name)')
+        .eq('league_id', ligaData.id)
+        .order('match_time', { ascending: false })
+        .limit(200);
 
     if (error) {
         console.error(error);
@@ -521,16 +541,20 @@ async function loadMatchesData() {
 
     allMatches = (data || []).map((jogo, idx) => ({
         id: jogo.id || idx,
-        homeTeam: jogo.casa,
-        awayTeam: jogo.visitante,
-        homeScore: Number(jogo.gols_casa || 0),
-        awayScore: Number(jogo.gols_fora || 0),
-        goals: Number(jogo.gols_casa || 0) + Number(jogo.gols_fora || 0),
+        homeTeam: jogo.home_team,
+        awayTeam: jogo.away_team,
+        homeScore: Number(jogo.full_time_home || 0),
+        awayScore: Number(jogo.full_time_away || 0),
+        goals: Number(jogo.total_goals || 0),
+        halfHomeScore: Number(jogo.half_time_home || 0),
+        halfAwayScore: Number(jogo.half_time_away || 0),
+        result: jogo.result,
+        correctScore: jogo.correct_score,
+        matchTime: jogo.match_time,
         status: 'FINISHED',
-        results: ['0-0','1-0','0-1','1-1','2-1'],
         percentage: 50,
         odds: { win: 2.0, draw: 3.0, loss: 2.0 },
-        league: jogo.campeonato
+        league: jogo.ligas?.name || currentLeague
     }));
 
     filteredMatches = [...allMatches];
@@ -544,17 +568,17 @@ async function loadMatchesData() {
 function updateLeagueName() {
     const names = {
         'World':                '🌐 World',
-        'Brasileirao Betano':   '🇧🇷 Brasileirão Betano',
-        'Classicos da America': '🌎 Clássicos da América',
-        'Copa America':         '🏆 Copa America',
+        'Brasileirão Betano':   '🇧🇷 Brasileirão Betano',
+        'Clássicos da América': '🌎 Clássicos da América',
+        'Copa América':         '🏆 Copa América',
         'Euro':                 '🌍 Euro',
-        'Ligas America':        '🗺️ Ligas America',
+        'Ligas América':        '🗺️ Ligas América',
         'British Derbies':      '🏴󠁧󠁢󠁥󠁮󠁧󠁿 British Derbies',
         'Liga Espanhola':       '🇪🇸 Liga Espanhola',
         'Scudetto Italiano':    '🇮🇹 Scudetto Italiano',
         'Campeonato Italiano':  '⚽ Campeonato Italiano',
         'Copa das Estrelas':    '⭐ Copa das Estrelas',
-        'Campeoes':             '👑 Campeões'
+        'Campeões':             '👑 Campeões'
     };
     document.getElementById('leagueName').textContent = names[currentLeague] || currentLeague;
 }
