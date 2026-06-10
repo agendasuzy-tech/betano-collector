@@ -990,6 +990,84 @@ async function loadLatestMatches() {
     }
 }
 
+// ============================================
+// SINCRONIZAR LIGAS NO BANCO
+// ============================================
+
+const LIGAS_BETANO = [
+    { id: 206286, name: 'World' },
+    { id: 204676, name: 'Brasileirão Betano' },
+    { id: 199959, name: 'Clássicos da América' },
+    { id: 203063, name: 'Copa América' },
+    { id: 203064, name: 'Euro' },
+    { id: 197476, name: 'Ligas América' },
+    { id: 203911, name: 'British Derbies' },
+    { id: 203912, name: 'Liga Espanhola' },
+    { id: 203913, name: 'Scudetto Italiano' },
+    { id: 199961, name: 'Campeonato Italiano' },
+    { id: 199960, name: 'Copa das Estrelas' },
+    { id: 199330, name: 'Campeões' },
+];
+
+async function sincronizarLigas() {
+    const btn = document.getElementById('btn-sync-ligas');
+    const modal = document.getElementById('modal-sync');
+    const resultado = document.getElementById('sync-resultado');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
+    resultado.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando ligas...';
+    modal.style.display = 'flex';
+
+    let html = '';
+    let criadas = 0;
+    let existentes = 0;
+    let atualizadas = 0;
+
+    for (const liga of LIGAS_BETANO) {
+        // Verificar se já existe pelo betano_league_id
+        const { data: existing } = await supabaseClient
+            .from('ligas')
+            .select('id, name')
+            .eq('betano_league_id', liga.id)
+            .single();
+
+        if (existing) {
+            if (existing.name !== liga.name) {
+                // Atualizar nome se diferente
+                await supabaseClient
+                    .from('ligas')
+                    .update({ name: liga.name })
+                    .eq('betano_league_id', liga.id);
+                html += `<div>🔄 <b>${liga.name}</b> — nome atualizado (era: "${existing.name}")</div>`;
+                atualizadas++;
+            } else {
+                html += `<div>✅ <b>${liga.name}</b> — já existe</div>`;
+                existentes++;
+            }
+        } else {
+            // Criar nova
+            const { error } = await supabaseClient
+                .from('ligas')
+                .insert({ betano_league_id: liga.id, name: liga.name });
+
+            if (error) {
+                html += `<div>❌ <b>${liga.name}</b> — erro: ${error.message}</div>`;
+            } else {
+                html += `<div>🆕 <b>${liga.name}</b> — criada!</div>`;
+                criadas++;
+            }
+        }
+    }
+
+    html += `<hr style="margin:15px 0; border-color:var(--color-border);">`;
+    html += `<div><b>🆕 Criadas:</b> ${criadas} &nbsp; <b>🔄 Atualizadas:</b> ${atualizadas} &nbsp; <b>✅ Já existiam:</b> ${existentes}</div>`;
+
+    resultado.innerHTML = html;
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-database"></i> Sincronizar Ligas no Banco';
+}
+
 // Atualizar a cada 30 segundos
 setInterval(() => {
     if (document.querySelector('[data-section="coletor"]')?.style.display !== 'none') {
@@ -1015,8 +1093,20 @@ setInterval(() => {
             <button class="btn-refresh" onclick="loadCollectorStatus()">
                 <i class="fas fa-sync"></i> Atualizar Status
             </button>
+            <button class="btn-refresh" onclick="sincronizarLigas()" id="btn-sync-ligas" style="background-color: var(--color-success);">
+                <i class="fas fa-database"></i> Sincronizar Ligas no Banco
+            </button>
         </div>
     </header>
+
+    <!-- Modal resultado sincronização -->
+    <div id="modal-sync" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:var(--color-card); border:1px solid var(--color-border); border-radius:var(--border-radius-lg); padding:30px; max-width:600px; width:90%; max-height:80vh; overflow-y:auto;">
+            <h3 style="margin-bottom:20px; color:var(--color-primary);"><i class="fas fa-database"></i> Sincronização de Ligas</h3>
+            <div id="sync-resultado" style="font-size:14px; line-height:2;"></div>
+            <button onclick="document.getElementById('modal-sync').style.display='none'" style="margin-top:20px; padding:10px 20px; background:var(--color-primary); color:white; border:none; border-radius:var(--border-radius); cursor:pointer; font-weight:600;">Fechar</button>
+        </div>
+    </div>
 
     <!-- Cards de Estatísticas -->
     <div class="stats-section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
