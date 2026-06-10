@@ -1,7 +1,7 @@
 // ============================================================
 // BETANO COLLECTOR - Server que roda 24/7 no Render.com
+// Versão com proxy Cloudflare Worker (resolve bloqueio de IP)
 // ============================================================
-// npm install express axios dotenv @supabase/supabase-js
 
 require('dotenv').config();
 const express = require('express');
@@ -10,6 +10,12 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ============================================================
+// CONFIGURAÇÃO DO PROXY (Cloudflare Worker)
+// Troque pela URL do seu Worker após o deploy!
+// ============================================================
+const PROXY_URL = process.env.PROXY_URL || 'https://betano-proxy.SEU-USUARIO.workers.dev';
 
 // Configuração Supabase
 const SUPABASE_URL = 'https://wwicknifzoeusrmganye.supabase.co';
@@ -32,12 +38,12 @@ const LEAGUES = [
   { id: 199330, name: 'Campeões' },
 ];
 
-// Status global
 let collectionStats = {
   lastRun: null,
   totalMatches: 0,
   newMatches: 0,
   nextRun: null,
+  totalCollections: 0,
 };
 
 // ============================================================
@@ -46,24 +52,17 @@ let collectionStats = {
 
 async function insertOrGetLeague(betanoId, name) {
   try {
-    // Verificar se liga já existe
     const { data: existing } = await supabase
       .from('ligas')
       .select('id')
       .eq('betano_league_id', betanoId)
       .single();
 
-    if (existing) {
-      return existing.id;
-    }
+    if (existing) return existing.id;
 
-    // Inserir nova liga
     const { data, error } = await supabase
       .from('ligas')
-      .insert({
-        betano_league_id: betanoId,
-        name: name,
-      })
+      .insert({ betano_league_id: betanoId, name: name })
       .select()
       .single();
 
@@ -77,7 +76,6 @@ async function insertOrGetLeague(betanoId, name) {
 
 async function parseAndSaveMatch(event, leagueId, leagueName, startTime) {
   try {
-    // Parse dos dados
     const get = (t) => event.statistics?.find(s => s.statisticsType === t)?.value?.score ?? '0';
     const ftH = parseInt(get('FullTimeHomeTeam'));
     const ftA = parseInt(get('FullTimeAwayTeam'));
@@ -86,11 +84,8 @@ async function parseAndSaveMatch(event, leagueId, leagueName, startTime) {
 
     const homeTeam = event.displayNameParts?.[0]?.name ?? 'Unknown';
     const awayTeam = event.displayNameParts?.[1]?.name ?? 'Unknown';
-
-    // Resultado
     const resultado = ftH > ftA ? 'Casa' : ftA > ftH ? 'Fora' : 'Empate';
 
-    // Inserir match
     const { data: matchData, error: matchError } = await supabase
       .from('matches')
       .insert({
@@ -111,14 +106,10 @@ async function parseAndSaveMatch(event, leagueId, leagueName, startTime) {
       .single();
 
     if (matchError) {
-      // Se já existe, ignorar
-      if (matchError.code === '23505') {
-        return null;
-      }
+      if (matchError.code === '23505') return null; // já existe
       throw matchError;
     }
 
-    // Salvar odds
     if (event.markets && matchData) {
       const odds = [];
       event.markets.forEach(market => {
@@ -133,15 +124,8 @@ async function parseAndSaveMatch(event, leagueId, leagueName, startTime) {
           });
         }
       });
-
       if (odds.length > 0) {
-        const { error: oddsError } = await supabase
-          .from('odds')
-          .insert(odds);
-        
-        if (oddsError) {
-          console.error('Erro ao salvar odds:', oddsError);
-        }
+        await supabase.from('odds').insert(odds).catch(e => console.error('Erro odds:', e));
       }
     }
 
@@ -154,25 +138,10 @@ async function parseAndSaveMatch(event, leagueId, leagueName, startTime) {
 
 async function collectLeague(leagueId, leagueName) {
   try {
-    const url = `https://www.betano.bet.br/api/virtuals/resultsdata?leagueId=${leagueId}&req=tn,stnf,c`;
-    
-    const response = await axios.get(url, {
-      headers: {
-        'accept': 'application/json, text/plain, */*',
-        'accept-language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-        'cache-control': 'no-cache',
-        'pragma': 'no-cache',
-        'sec-ch-ua': '"Google Chrome";v="124", "Chromium";v="124", "Not-A.Brand";v="99"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
-        'referer': 'https://www.betano.bet.br/virtual-sports/',
-        'origin': 'https://www.betano.bet.br',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      },
-    });
+    // ← Chama o Worker em vez da Betano direto
+    const url = `${PROXY_URL}?leagueId=${leagueId}`;
+
+    const response = await axios.get(url, { timeout: 15000 });
 
     if (!response.data?.data?.results) {
       return { novos: 0, total: 0, erro: 'Dados vazios' };
@@ -181,13 +150,9 @@ async function collectLeague(leagueId, leagueName) {
     let novos = 0;
     let total = 0;
 
-    // Obter ID da liga no Supabase
     const leagueDbId = await insertOrGetLeague(leagueId, leagueName);
-    if (!leagueDbId) {
-      return { novos: 0, total: 0, erro: 'Erro ao inserir liga' };
-    }
+    if (!leagueDbId) return { novos: 0, total: 0, erro: 'Erro ao inserir liga' };
 
-    // Processar cada rodada
     for (const round of response.data.data.results) {
       if (round.events) {
         for (const event of round.events) {
@@ -207,59 +172,50 @@ async function collectLeague(leagueId, leagueName) {
 }
 
 async function runCollectionCycle() {
-  console.log('\n' + '='.repeat(60));
-  console.log(`📊 INICIANDO COLETA - ${new Date().toLocaleString('pt-BR')}`);
-  console.log('='.repeat(60));
-
+  const startTime = Date.now();
+  collectionStats.totalCollections++;
   collectionStats.lastRun = new Date();
+
+  console.log(`\n[${collectionStats.totalCollections}] ⚡ COLETA - ${collectionStats.lastRun.toLocaleString('pt-BR')}`);
+
+  const results = await Promise.all(
+    LEAGUES.map(league => collectLeague(league.id, league.name))
+  );
+
   let totalNovos = 0;
   let totalMatches = 0;
+  results.forEach(r => { totalNovos += r.novos; totalMatches += r.total; });
 
-  // Coletar todas as ligas
-  for (const league of LEAGUES) {
-    const result = await collectLeague(league.id, league.name);
-    totalNovos += result.novos;
-    totalMatches += result.total;
-  }
-
-  // Salvar log de coleta
-  try {
+  if (totalNovos > 0) {
     await supabase.from('collection_logs').insert({
       total_matches: totalMatches,
       new_matches: totalNovos,
-      status: totalNovos > 0 ? 'success' : 'partial',
-    });
-  } catch (error) {
-    console.error('Erro ao salvar log:', error);
+      status: 'success',
+    }).catch(e => console.error('Erro log:', e));
   }
 
   collectionStats.totalMatches = totalMatches;
   collectionStats.newMatches = totalNovos;
-  collectionStats.nextRun = new Date(Date.now() + 1 * 60 * 1000); // Próxima em 1 minuto
+  collectionStats.nextRun = new Date(Date.now() + 60 * 1000);
 
-  console.log(`\n✅ COLETA FINALIZADA`);
-  console.log(`📈 Total de partidas: ${totalMatches}`);
-  console.log(`🆕 Novas partidas: ${totalNovos}`);
-  console.log(`⏰ Próxima coleta: ${collectionStats.nextRun.toLocaleString('pt-BR')}`);
-  console.log('='.repeat(60) + '\n');
+  const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log(`✅ ${totalNovos}/${totalMatches} partidas em ${duration}s`);
 }
 
 // ============================================================
-// ROTAS EXPRESS
+// ROTAS
 // ============================================================
 
 app.get('/', (req, res) => {
   res.json({
-    status: '✅ Betano Collector está rodando!',
+    status: '✅ Betano Collector rodando (via Cloudflare Proxy)!',
+    proxy: PROXY_URL,
     stats: collectionStats,
     ligas: LEAGUES.length,
-    message: 'Coletando dados a cada 30 minutos',
   });
 });
 
-app.get('/status', (req, res) => {
-  res.json(collectionStats);
-});
+app.get('/status', (req, res) => res.json(collectionStats));
 
 app.get('/collect-now', async (req, res) => {
   try {
@@ -271,18 +227,15 @@ app.get('/collect-now', async (req, res) => {
 });
 
 // ============================================================
-// INICIA O SERVIDOR
+// START
 // ============================================================
 
 app.listen(PORT, () => {
-  console.log(`🚀 Betano Collector Server rodando na porta ${PORT}`);
-  console.log(`📍 URL: https://seu-app.onrender.com`);
+  console.log(`\n🚀 Betano Collector rodando na porta ${PORT}`);
+  console.log(`🌐 Proxy: ${PROXY_URL}`);
   console.log(`📊 Supabase: ${SUPABASE_URL}`);
-  console.log(`📋 12 ligas serão coletadas a cada 1 MINUTO\n`);
-  
-  // Primeira coleta imediatamente
+  console.log(`📋 12 ligas a cada 1 MINUTO\n`);
+
   runCollectionCycle();
-  
-  // Próximas coletas a cada 1 MINUTO - TEMPO REAL!
-  setInterval(runCollectionCycle, 1 * 60 * 1000);
+  setInterval(runCollectionCycle, 60 * 1000);
 });
