@@ -242,12 +242,18 @@
         <!-- Leagues Tabs -->
         <div class="leagues-section">
             <div class="leagues-tabs">
-                <button class="league-tab active" data-league="express" onclick="changeLeague('express')">⚡ Express</button>
-                <button class="league-tab" data-league="copa" onclick="changeLeague('copa')">🏆 Copa</button>
-                <button class="league-tab" data-league="euro" onclick="changeLeague('euro')">🌍 Euro</button>
-                <button class="league-tab" data-league="super" onclick="changeLeague('super')">⭐ Super</button>
-                <button class="league-tab" data-league="premier" onclick="changeLeague('premier')">👑 Premier</button>
-                <button class="league-tab" data-league="split" onclick="changeLeague('split')">🔀 Split</button>
+                <button class="league-tab active" data-league="World" onclick="changeLeague('World')">🌐 World</button>
+                <button class="league-tab" data-league="Brasileirao Betano" onclick="changeLeague('Brasileirao Betano')">🇧🇷 Brasileirão Betano</button>
+                <button class="league-tab" data-league="Classicos da America" onclick="changeLeague('Classicos da America')">🌎 Clássicos da América</button>
+                <button class="league-tab" data-league="Copa America" onclick="changeLeague('Copa America')">🏆 Copa America</button>
+                <button class="league-tab" data-league="Euro" onclick="changeLeague('Euro')">🌍 Euro</button>
+                <button class="league-tab" data-league="Ligas America" onclick="changeLeague('Ligas America')">🗺️ Ligas America</button>
+                <button class="league-tab" data-league="British Derbies" onclick="changeLeague('British Derbies')">🏴󠁧󠁢󠁥󠁮󠁧󠁿 British Derbies</button>
+                <button class="league-tab" data-league="Liga Espanhola" onclick="changeLeague('Liga Espanhola')">🇪🇸 Liga Espanhola</button>
+                <button class="league-tab" data-league="Scudetto Italiano" onclick="changeLeague('Scudetto Italiano')">🇮🇹 Scudetto Italiano</button>
+                <button class="league-tab" data-league="Campeonato Italiano" onclick="changeLeague('Campeonato Italiano')">⚽ Campeonato Italiano</button>
+                <button class="league-tab" data-league="Copa das Estrelas" onclick="changeLeague('Copa das Estrelas')">⭐ Copa das Estrelas</button>
+                <button class="league-tab" data-league="Campeoes" onclick="changeLeague('Campeoes')">👑 Campeões</button>
             </div>
         </div>
 
@@ -337,7 +343,7 @@
         <!-- Matches Table -->
         <section class="matches-section">
             <div class="matches-header">
-                <h2><i class="fas fa-table"></i> Análise de Partidas — <span id="leagueName" style="color:var(--color-warning)">Express</span></h2>
+                <h2><i class="fas fa-table"></i> Análise de Partidas — <span id="leagueName" style="color:var(--color-warning)">🌐 World</span></h2>
                 <div class="table-controls">
                     <input type="text" id="searchMatch" class="search-input" placeholder="Buscar time..." onkeyup="filterMatches()">
                     <button class="btn-export" onclick="exportToCSV()"><i class="fas fa-download"></i> Exportar CSV</button>
@@ -400,21 +406,27 @@
 // DADOS DE FUTEBOL VIRTUAL BET365
 // ============================================
 
-// Times por liga (baseado nas ligas reais do futebol virtual Bet365)
+// Times por liga (ligas reais do futebol virtual Betano)
 const LEAGUE_TEAMS = {
-    express: ['Red Team','Blue Team','Green Team','Yellow Team','Orange Team','Purple Team','White Team','Black Team','Silver Team','Gold Team'],
-    copa:    ['Brasil VR','Argentina VR','Colombia VR','Uruguay VR','Chile VR','Peru VR','Equador VR','Venezuela VR','Paraguai VR','Bolivia VR'],
-    euro:    ['England VR','Spain VR','Germany VR','France VR','Italy VR','Portugal VR','Netherlands VR','Belgium VR','Croatia VR','Poland VR'],
-    super:   ['Super Reds','Super Blues','Super Greens','Super Whites','Super Blacks','Super Golds','Super Silvers','Super Oranges','Super Purples','Super Yellows'],
-    premier: ['Brighton VR','Man City VR','Arsenal VR','Tottenham VR','Liverpool VR','Chelsea VR','Man United VR','Newcastle VR','Aston Villa VR','Everton VR'],
-    split:   ['Split A','Split B','Split C','Split D','Split E','Split F','Split G','Split H','Split I','Split J']
+    'World':                ['Team A','Team B','Team C','Team D','Team E','Team F','Team G','Team H','Team I','Team J'],
+    'Brasileirao Betano':   ['Flamengo VR','Palmeiras VR','Corinthians VR','São Paulo VR','Grêmio VR','Internacional VR','Santos VR','Athletico VR','Fluminense VR','Vasco VR'],
+    'Classicos da America': ['Brasil VR','Argentina VR','Uruguai VR','Colômbia VR','Chile VR','Peru VR','Equador VR','Venezuela VR','Paraguai VR','Bolívia VR'],
+    'Copa America':         ['Brasil VR','Argentina VR','Uruguai VR','Colômbia VR','Chile VR','Peru VR','Equador VR','Venezuela VR','Paraguai VR','Bolívia VR'],
+    'Euro':                 ['England VR','Spain VR','Germany VR','France VR','Italy VR','Portugal VR','Netherlands VR','Belgium VR','Croatia VR','Poland VR'],
+    'Ligas America':        ['MLS VR','Liga MX VR','Argentina VR','Brasil VR','Colombia VR','Chile VR','Peru VR','Equador VR','Uruguai VR','Paraguai VR'],
+    'British Derbies':      ['Man United VR','Man City VR','Liverpool VR','Arsenal VR','Chelsea VR','Tottenham VR','Newcastle VR','Aston Villa VR','Leeds VR','Everton VR'],
+    'Liga Espanhola':       ['Real Madrid VR','Barcelona VR','Atletico VR','Sevilla VR','Valencia VR','Villarreal VR','Betis VR','Sociedad VR','Athletic VR','Osasuna VR'],
+    'Scudetto Italiano':    ['Juventus VR','Milan VR','Inter VR','Roma VR','Napoli VR','Lazio VR','Fiorentina VR','Atalanta VR','Bologna VR','Torino VR'],
+    'Campeonato Italiano':  ['Juventus VR','Milan VR','Inter VR','Roma VR','Napoli VR','Lazio VR','Fiorentina VR','Atalanta VR','Bologna VR','Torino VR'],
+    'Copa das Estrelas':    ['Estrela A','Estrela B','Estrela C','Estrela D','Estrela E','Estrela F','Estrela G','Estrela H','Estrela I','Estrela J'],
+    'Campeoes':             ['Campeão A','Campeão B','Campeão C','Campeão D','Campeão E','Campeão F','Campeão G','Campeão H','Campeão I','Campeão J']
 };
 
 const ITEMS_PER_PAGE = 10;
 let currentPage = 1;
 let allMatches = [];
 let filteredMatches = [];
-let currentLeague = 'express';
+let currentLeague = 'World';
 let sortField = null;
 let sortAsc = true;
 let timerInterval = null;
@@ -530,7 +542,20 @@ async function loadMatchesData() {
 
 
 function updateLeagueName() {
-    const names = { express:'⚡ Express', copa:'🏆 Copa', euro:'🌍 Euro', super:'⭐ Super', premier:'👑 Premier', split:'🔀 Split' };
+    const names = {
+        'World':                '🌐 World',
+        'Brasileirao Betano':   '🇧🇷 Brasileirão Betano',
+        'Classicos da America': '🌎 Clássicos da América',
+        'Copa America':         '🏆 Copa America',
+        'Euro':                 '🌍 Euro',
+        'Ligas America':        '🗺️ Ligas America',
+        'British Derbies':      '🏴󠁧󠁢󠁥󠁮󠁧󠁿 British Derbies',
+        'Liga Espanhola':       '🇪🇸 Liga Espanhola',
+        'Scudetto Italiano':    '🇮🇹 Scudetto Italiano',
+        'Campeonato Italiano':  '⚽ Campeonato Italiano',
+        'Copa das Estrelas':    '⭐ Copa das Estrelas',
+        'Campeoes':             '👑 Campeões'
+    };
     document.getElementById('leagueName').textContent = names[currentLeague] || currentLeague;
 }
 
@@ -868,11 +893,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const supabaseClient = window.supabase.createClient(
-"https://wwicknifzoeusrmganye.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3aWNrbmlmem9ldXNybWdhbnllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDc0NDQsImV4cCI6MjA5NjQyMzQ0NH0.fq8QCF32YyJ2yonDfHVXTK5hP_c8gSKTk2bg4jlal3U"
-);
-window.supabaseClient=supabaseClient;
+// Usar o supabaseClient já declarado acima
 
 // ============================================
 // COLETOR AUTOMÁTICO
@@ -1052,15 +1073,6 @@ setInterval(() => {
         </div>
     </section>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-const supabaseClient = window.supabase.createClient(
-"https://wwicknifzoeusrmganye.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3aWNrbmlmem9ldXNybWdhbnllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDc0NDQsImV4cCI6MjA5NjQyMzQ0NH0.fq8QCF32YyJ2yonDfHVXTK5hP_c8gSKTk2bg4jlal3U"
-);
-window.supabaseClient=supabaseClient;
-</script>
 
 </body>
 </html>
