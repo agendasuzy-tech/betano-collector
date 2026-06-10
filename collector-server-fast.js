@@ -139,8 +139,19 @@ async function collectLeague(leagueId, leagueName) {
     
     const response = await axios.get(url, {
       headers: {
-        'accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0',
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'cache-control': 'no-cache',
+        'pragma': 'no-cache',
+        'sec-ch-ua': '"Google Chrome";v="124", "Chromium";v="124", "Not-A.Brand";v="99"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'referer': 'https://www.betano.bet.br/virtual-sports/',
+        'origin': 'https://www.betano.bet.br',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       },
       timeout: 10000,
     });
