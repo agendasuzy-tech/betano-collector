@@ -1,17 +1,15 @@
 // ============================================================
-// BETANO COLLECTOR - Server que roda 24/7 no Render.com
-// Versão com proxy Cloudflare Worker (resolve bloqueio de IP)
+// BETANO COLLECTOR - Versão com Puppeteer (Chrome headless)
+// Resolve bloqueio de IP usando navegador real
 // ============================================================
 
 require('dotenv').config();
 const express = require('express');
-const axios = require('axios');
+const puppeteer = require('puppeteer');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-const PROXY_URL = process.env.PROXY_URL || 'https://betano-proxy.agendasuzy.workers.dev';
 
 const SUPABASE_URL = 'https://wwicknifzoeusrmganye.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3aWNrbmlmem9ldXNybWdhbnllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDc0NDQsImV4cCI6MjA5NjQyMzQ0NH0.fq8QCF32YyJ2yonDfHVXTK5hP_c8gSKTk2bg4jlal3U';
@@ -39,6 +37,29 @@ let collectionStats = {
   nextRun: null,
   totalCollections: 0,
 };
+
+let browser = null;
+
+async function getBrowser() {
+  if (!browser || !browser.isConnected()) {
+    console.log('🌐 Iniciando Chrome...');
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu',
+      ],
+    });
+    console.log('✅ Chrome iniciado!');
+  }
+  return browser;
+}
 
 async function insertOrGetLeague(betanoId, name) {
   try {
@@ -126,20 +147,32 @@ async function parseAndSaveMatch(event, leagueId, leagueName, startTime) {
   }
 }
 
-async function collectLeague(leagueId, leagueName) {
+async function collectLeague(page, leagueId, leagueName) {
   try {
-    const url = `${PROXY_URL}?leagueId=${leagueId}`;
-    const response = await axios.get(url, { timeout: 15000 });
+    const url = `https://www.betano.bet.br/api/virtuals/resultsdata?leagueId=${leagueId}&req=tn,stnf,c`;
 
-    // LOG para debug
-    const rawData = response.data;
-    console.log(`[${leagueName}] tipo:`, typeof rawData, '| keys:', Object.keys(rawData || {}).join(','));
+    const response = await page.evaluate(async (url) => {
+      const res = await fetch(url, {
+        headers: {
+          'accept': 'application/json, text/plain, */*',
+          'accept-language': 'pt-BR,pt;q=0.9',
+          'cache-control': 'no-cache',
+          'referer': 'https://www.betano.bet.br/virtual-sports/',
+        }
+      });
+      return res.text();
+    }, url);
 
-    // Suporta tanto string quanto objeto
-    const parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+    let parsed;
+    try {
+      parsed = JSON.parse(response);
+    } catch(e) {
+      console.log(`✗ ${leagueName}: resposta inválida:`, response.substring(0, 100));
+      return { novos: 0, total: 0, erro: 'JSON inválido' };
+    }
 
     if (!parsed?.data?.results) {
-      console.log(`[${leagueName}] Sem results! Keys:`, Object.keys(parsed || {}));
+      console.log(`✗ ${leagueName}: sem results`);
       return { novos: 0, total: 0, erro: 'Dados vazios' };
     }
 
@@ -147,7 +180,7 @@ async function collectLeague(leagueId, leagueName) {
     let total = 0;
 
     const leagueDbId = await insertOrGetLeague(leagueId, leagueName);
-    if (!leagueDbId) return { novos: 0, total: 0, erro: 'Erro ao inserir liga' };
+    if (!leagueDbId) return { novos: 0, total: 0, erro: 'Erro liga' };
 
     for (const round of parsed.data.results) {
       if (round.events) {
@@ -174,34 +207,61 @@ async function runCollectionCycle() {
 
   console.log(`\n[${collectionStats.totalCollections}] ⚡ COLETA - ${collectionStats.lastRun.toLocaleString('pt-BR')}`);
 
-  const results = await Promise.all(
-    LEAGUES.map(league => collectLeague(league.id, league.name))
-  );
+  let page = null;
+  try {
+    const b = await getBrowser();
+    page = await b.newPage();
 
-  let totalNovos = 0;
-  let totalMatches = 0;
-  results.forEach(r => { totalNovos += r.novos; totalMatches += r.total; });
+    // Visita a página principal primeiro para pegar cookies
+    await page.goto('https://www.betano.bet.br/virtual-sports/', {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
+    });
 
-  if (totalNovos > 0) {
-    await supabase.from('collection_logs').insert({
-      total_matches: totalMatches,
-      new_matches: totalNovos,
-      status: 'success',
-    }).catch(e => console.error('Erro log:', e));
+    // Coleta cada liga em sequência usando a mesma página (mesmos cookies)
+    let totalNovos = 0;
+    let totalMatches = 0;
+
+    for (const league of LEAGUES) {
+      const result = await collectLeague(page, league.id, league.name);
+      totalNovos += result.novos;
+      totalMatches += result.total;
+    }
+
+    if (totalNovos > 0) {
+      await supabase.from('collection_logs').insert({
+        total_matches: totalMatches,
+        new_matches: totalNovos,
+        status: 'success',
+      }).catch(e => console.error('Erro log:', e));
+    }
+
+    collectionStats.totalMatches = totalMatches;
+    collectionStats.newMatches = totalNovos;
+    collectionStats.nextRun = new Date(Date.now() + 60 * 1000);
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ ${totalNovos}/${totalMatches} partidas em ${duration}s`);
+
+  } catch (error) {
+    console.error('Erro no ciclo de coleta:', error.message);
+    // Reinicia o browser se der erro
+    if (browser) {
+      await browser.close().catch(() => {});
+      browser = null;
+    }
+  } finally {
+    if (page) await page.close().catch(() => {});
   }
-
-  collectionStats.totalMatches = totalMatches;
-  collectionStats.newMatches = totalNovos;
-  collectionStats.nextRun = new Date(Date.now() + 60 * 1000);
-
-  const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-  console.log(`✅ ${totalNovos}/${totalMatches} partidas em ${duration}s`);
 }
+
+// ============================================================
+// ROTAS
+// ============================================================
 
 app.get('/', (req, res) => {
   res.json({
-    status: '✅ Betano Collector rodando (via Cloudflare Proxy)!',
-    proxy: PROXY_URL,
+    status: '✅ Betano Collector rodando (Puppeteer)!',
     stats: collectionStats,
     ligas: LEAGUES.length,
   });
@@ -218,11 +278,17 @@ app.get('/collect-now', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 Betano Collector rodando na porta ${PORT}`);
-  console.log(`🌐 Proxy: ${PROXY_URL}`);
+// ============================================================
+// START
+// ============================================================
+
+app.listen(PORT, async () => {
+  console.log(`\n🚀 Betano Collector (Puppeteer) rodando na porta ${PORT}`);
   console.log(`📊 Supabase: ${SUPABASE_URL}`);
   console.log(`📋 12 ligas a cada 1 MINUTO\n`);
+
+  // Inicia o browser antes de começar
+  await getBrowser();
 
   runCollectionCycle();
   setInterval(runCollectionCycle, 60 * 1000);
